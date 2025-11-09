@@ -101,7 +101,7 @@ app.post("/api/crop-video", upload.single("video"), async (req, res) => {
         fs.unlinkSync(inputPath);
 
         // Send a download URL with proper path separator
-        const downloadUrl = `${req.protocol}://${req.get("host")}/${outputPath.replace(/\\/g, '/')}`;
+        const downloadUrl = `${req.protocol}${(PORT != 4000)? 's': ''}://${req.get("host")}/${outputPath.replace(/\\/g, '/')}`;
         res.json({ message: "Video processed successfully", downloadUrl });
       })
       .on("error", (err) => {

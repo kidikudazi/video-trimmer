@@ -7,7 +7,7 @@ import ffmpegPath from "@ffmpeg-installer/ffmpeg";
 import ffprobePath from "@ffprobe-installer/ffprobe";
 
 const app = express();
-const PORT = 4000;
+const PORT = process.env.PORT || 4000;
 
 // Middleware for parsing JSON
 app.use(express.json());

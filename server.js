@@ -189,7 +189,7 @@ app.post("/api/crop-image", upload.single("image"), async (req, res) => {
 });
 
 app.get("/health", (req, res) => {
-  res.send("Welcome to the Video/Image Cropper API! Use /api/crop-video or /api/crop-image to crop your media.");
+  return res.send("Welcome to the Video/Image Cropper API! Use /api/crop-video or /api/crop-image to crop your media.");
 });
 
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));

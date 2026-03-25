@@ -121,82 +121,100 @@ app.post("/api/crop-video", upload.single("video"), async (req, res) => {
 
 app.post("/api/crop-image", upload.single("image"), async (req, res) => {
   try {
-    // Two cropping modes:
-    // 1. Edge-based: { top, bottom, left, right } - removes pixels from edges
-    // 2. Region-based: { cropX, cropY, cropWidth, cropHeight } - crops to specific rectangle
     const { 
       top = 0, bottom = 0, left = 0, right = 0,
-      cropX, cropY, cropWidth, cropHeight 
+      cropX, cropY, cropWidth, cropHeight,
+      resizeWidth, resizeHeight,   // optional
+      grayscale, blur              // optional filters
     } = req.body;
-    
+
     const inputPath = req.file.path;
 
     ffmpeg.ffprobe(inputPath, (err, metadata) => {
-      if (err) return res.status(500).json({ error: "Failed to read video metadata" });
-      console.log("Video metadata:", metadata);
-      const videoStream = metadata.streams.find((s) => s.width && s.height);
-      if (!videoStream) {
-      return res.status(500).json({ error: "No video stream found" });
+      if (err) {
+        fs.unlinkSync(inputPath);
+        return res.status(500).json({ error: "Failed to read image metadata" });
       }
 
-      const { width, height } = videoStream;
+      const stream = metadata.streams.find(s => s.width && s.height);
+      if (!stream) {
+        fs.unlinkSync(inputPath);
+        return res.status(500).json({ error: "No image stream found" });
+      }
+
+      const { width, height } = stream;
       let finalWidth, finalHeight, startX, startY;
 
-      // Determine cropping mode
+      // ✅ Determine cropping mode
       if (cropWidth !== undefined && cropHeight !== undefined) {
-      // Region-based cropping: crop to specific rectangle
-      finalWidth = parseInt(cropWidth);
-      finalHeight = parseInt(cropHeight);
-      startX = parseInt(cropX || 0);
-      startY = parseInt(cropY || 0);
-      
-      console.log(`Region crop: ${width}x${height} → ${finalWidth}x${finalHeight} at (${startX}, ${startY})`);
+        finalWidth = parseInt(cropWidth);
+        finalHeight = parseInt(cropHeight);
+        startX = parseInt(cropX || 0);
+        startY = parseInt(cropY || 0);
       } else {
-      // Edge-based cropping: remove pixels from edges
-      finalWidth = width - parseInt(left) - parseInt(right);
-      finalHeight = height - parseInt(top) - parseInt(bottom);
-      startX = parseInt(left);
-      startY = parseInt(top);
-      
-      console.log(`Edge crop: ${width}x${height} → ${finalWidth}x${finalHeight} (removed: T:${top} B:${bottom} L:${left} R:${right})`);
+        finalWidth = width - parseInt(left) - parseInt(right);
+        finalHeight = height - parseInt(top) - parseInt(bottom);
+        startX = parseInt(left);
+        startY = parseInt(top);
       }
 
-      // Validate dimensions
+      // ✅ Validation
       if (finalWidth <= 0 || finalHeight <= 0 || startX < 0 || startY < 0) {
-      fs.unlinkSync(inputPath);
-      return res.status(400).json({
-        error: `Invalid crop values. Resulting dimensions would be ${finalWidth}x${finalHeight} at (${startX}, ${startY}).`,
-      });
+        fs.unlinkSync(inputPath);
+        return res.status(400).json({ error: "Invalid crop values" });
       }
 
       if (startX + finalWidth > width || startY + finalHeight > height) {
-      fs.unlinkSync(inputPath);
-      return res.status(400).json({
-        error: `Crop region exceeds video boundaries. Video is ${width}x${height}, crop would extend to ${startX + finalWidth}x${startY + finalHeight}.`,
-      });
+        fs.unlinkSync(inputPath);
+        return res.status(400).json({ error: "Crop exceeds image bounds" });
       }
 
-      const outputPath = path.join("output", `cropped-${Date.now()}.mp4`);
+      // ✅ Build filter chain
+      const filters = [];
 
-      // FFmpeg crop filter: crop=width:height:x:y
+      // Crop
+      filters.push(`crop=${finalWidth}:${finalHeight}:${startX}:${startY}`);
+
+      // Resize (optional)
+      if (resizeWidth && resizeHeight) {
+        filters.push(`scale=${resizeWidth}:${resizeHeight}`);
+      }
+
+      // Grayscale (optional)
+      if (grayscale === "true") {
+        filters.push("format=gray");
+      }
+
+      // Blur (optional)
+      if (blur) {
+        filters.push(`boxblur=${blur}`);
+      }
+
+      const outputPath = path.join("output", `processed-${Date.now()}.jpg`);
+
       ffmpeg(inputPath)
-      .videoFilter(`crop=${finalWidth}:${finalHeight}:${startX}:${startY}`)
-      .on("end", () => {
-        console.log("✅ Video processed:", outputPath);
-        fs.unlinkSync(inputPath);
+        .outputOptions("-frames:v 1") // ensure single image output
+        .videoFilters(filters)
+        .on("end", () => {
+          console.log("✅ Image processed:", outputPath);
+          fs.unlinkSync(inputPath);
 
-        // Send a download URL with proper path separator
-        const downloadUrl = `${req.protocol}${(PORT != 4000)? 's': ''}://${req.get("host")}/${outputPath.replace(/\\/g, '/')}`;
-        res.json({ message: "Video processed successfully", downloadUrl });
-      })
-      .on("error", (err) => {
-        console.error("❌ FFmpeg processing error:", err.message);
-        if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
-        if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
-        res.status(500).json({ error: "Failed to process video" });
-      })
-      .save(outputPath);
+          const downloadUrl = `${req.protocol}${(PORT != 4000)? 's': ''}://${req.get("host")}/${outputPath.replace(/\\/g, '/')}`;
+
+          res.json({
+            message: "Image processed successfully",
+            downloadUrl
+          });
+        })
+        .on("error", (err) => {
+          console.error("❌ FFmpeg error:", err.message);
+          if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
+          if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
+          res.status(500).json({ error: "Failed to process image" });
+        })
+        .save(outputPath);
     });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Something went wrong" });

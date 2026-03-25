@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Cropper</title>
+    <title>Media Cropper</title>
     <style>
         * {
             margin: 0;
@@ -35,6 +35,40 @@
             margin-bottom: 30px;
             font-size: 14px;
         }
+
+        /* Tab navigation */
+        .tab-nav {
+            display: flex;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #667eea;
+        }
+        .tab-btn {
+            padding: 14px 32px;
+            border: none;
+            background: #f0f2ff;
+            color: #667eea;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-radius: 10px 10px 0 0;
+        }
+        .tab-btn:hover {
+            background: #e0e4ff;
+        }
+        .tab-btn.active {
+            background: #667eea;
+            color: white;
+        }
+        .tab-panel {
+            display: none;
+        }
+        .tab-panel.active {
+            display: block;
+        }
+
         .upload-section {
             border: 3px dashed #667eea;
             border-radius: 10px;
@@ -206,96 +240,314 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        video {
+        video, .result-img {
             max-width: 100%;
             border-radius: 10px;
             margin-top: 15px;
+        }
+
+        /* Image-specific styles */
+        .section-label {
+            text-align: center;
+            color: #999;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 20px 0 10px;
+        }
+        .filters-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9ff;
+            border-radius: 10px;
+        }
+        .filters-section h4 {
+            color: #333;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .filter-row {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+        }
+        .filter-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .filter-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #667eea;
+            cursor: pointer;
+        }
+        .filter-item input[type="number"] {
+            width: 80px;
+        }
+        .image-preview {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .image-preview img {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            border: 2px solid #e0e4ff;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎬 Video Cropper</h1>
-        <p class="subtitle">Upload a video and crop it using edge-based or region-based cropping</p>
-        
-        <div class="upload-section" id="uploadSection">
-            <p style="font-size: 48px; margin-bottom: 10px;">📹</p>
-            <p style="margin-bottom: 15px; color: #666;">Drag & drop your video here or</p>
-            <button class="upload-btn" onclick="document.getElementById('videoInput').click()">Choose Video</button>
-            <input type="file" id="videoInput" accept="video/*">
-            <p id="fileName" style="margin-top: 15px; color: #667eea; font-weight: 600;"></p>
+        <h1>🎨 Media Cropper</h1>
+        <p class="subtitle">Crop and process your videos and images</p>
+
+        <!-- Tab Navigation -->
+        <div class="tab-nav">
+            <button class="tab-btn active" onclick="switchTab('video')">🎬 Video Cropper</button>
+            <button class="tab-btn" onclick="switchTab('image')">🖼️ Image Cropper</button>
         </div>
 
-        <div class="crop-options" id="cropOptions">
-            <div class="mode-toggle">
-                <button class="mode-btn active" onclick="switchMode('edge')">Edge Crop</button>
-                <button class="mode-btn" onclick="switchMode('region')">Region Crop</button>
+        <!-- ==================== VIDEO TAB ==================== -->
+        <div class="tab-panel active" id="videoTab">
+            <div class="upload-section" id="uploadSection">
+                <p style="font-size: 48px; margin-bottom: 10px;">📹</p>
+                <p style="margin-bottom: 15px; color: #666;">Drag & drop your video here or</p>
+                <button class="upload-btn" onclick="document.getElementById('videoInput').click()">Choose Video</button>
+                <input type="file" id="videoInput" accept="video/*">
+                <p id="fileName" style="margin-top: 15px; color: #667eea; font-weight: 600;"></p>
             </div>
 
-            <div id="edgeMode" class="crop-mode active">
-                <p style="text-align: center; color: #666; margin-bottom: 15px;">Remove pixels from edges</p>
-                <div class="input-group">
-                    <div class="input-wrapper">
-                        <label for="top">Top (px)</label>
-                        <input type="number" id="top" value="0" min="0">
-                    </div>
-                    <div class="input-wrapper">
-                        <label for="bottom">Bottom (px)</label>
-                        <input type="number" id="bottom" value="0" min="0">
-                    </div>
-                    <div class="input-wrapper">
-                        <label for="left">Left (px)</label>
-                        <input type="number" id="left" value="0" min="0">
-                    </div>
-                    <div class="input-wrapper">
-                        <label for="right">Right (px)</label>
-                        <input type="number" id="right" value="0" min="0">
+            <div class="crop-options" id="cropOptions">
+                <div class="mode-toggle" id="videoModeToggle">
+                    <button class="mode-btn active" onclick="switchMode('edge', 'video')">Edge Crop</button>
+                    <button class="mode-btn" onclick="switchMode('region', 'video')">Region Crop</button>
+                </div>
+
+                <div id="edgeMode" class="crop-mode active">
+                    <p style="text-align: center; color: #666; margin-bottom: 15px;">Remove pixels from edges</p>
+                    <div class="input-group">
+                        <div class="input-wrapper">
+                            <label for="top">Top (px)</label>
+                            <input type="number" id="top" value="0" min="0">
+                        </div>
+                        <div class="input-wrapper">
+                            <label for="bottom">Bottom (px)</label>
+                            <input type="number" id="bottom" value="0" min="0">
+                        </div>
+                        <div class="input-wrapper">
+                            <label for="left">Left (px)</label>
+                            <input type="number" id="left" value="0" min="0">
+                        </div>
+                        <div class="input-wrapper">
+                            <label for="right">Right (px)</label>
+                            <input type="number" id="right" value="0" min="0">
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div id="regionMode" class="crop-mode">
-                <p style="text-align: center; color: #666; margin-bottom: 15px;">Crop to specific rectangle</p>
-                <div class="input-group">
-                    <div class="input-wrapper">
-                        <label for="cropX">Start X (px)</label>
-                        <input type="number" id="cropX" value="0" min="0">
-                    </div>
-                    <div class="input-wrapper">
-                        <label for="cropY">Start Y (px)</label>
-                        <input type="number" id="cropY" value="0" min="0">
-                    </div>
-                    <div class="input-wrapper">
-                        <label for="cropWidth">Width (px)</label>
-                        <input type="number" id="cropWidth" value="640" min="1">
-                    </div>
-                    <div class="input-wrapper">
-                        <label for="cropHeight">Height (px)</label>
-                        <input type="number" id="cropHeight" value="480" min="1">
+                <div id="regionMode" class="crop-mode">
+                    <p style="text-align: center; color: #666; margin-bottom: 15px;">Crop to specific rectangle</p>
+                    <div class="input-group">
+                        <div class="input-wrapper">
+                            <label for="cropX">Start X (px)</label>
+                            <input type="number" id="cropX" value="0" min="0">
+                        </div>
+                        <div class="input-wrapper">
+                            <label for="cropY">Start Y (px)</label>
+                            <input type="number" id="cropY" value="0" min="0">
+                        </div>
+                        <div class="input-wrapper">
+                            <label for="cropWidth">Width (px)</label>
+                            <input type="number" id="cropWidth" value="640" min="1">
+                        </div>
+                        <div class="input-wrapper">
+                            <label for="cropHeight">Height (px)</label>
+                            <input type="number" id="cropHeight" value="480" min="1">
+                        </div>
                     </div>
                 </div>
+
+                <button class="process-btn" onclick="processVideo()">🎬 Crop Video</button>
             </div>
 
-            <button class="process-btn" onclick="processVideo()">🎬 Crop Video</button>
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Processing video... This may take a few moments.</p>
+            </div>
+
+            <div class="error" id="error"></div>
+
+            <div class="result" id="result">
+                <h3 style="margin-bottom: 10px;">✅ Video processed successfully!</h3>
+                <a id="downloadLink" download>Download Cropped Video</a>
+                <video id="resultVideo" controls></video>
+            </div>
         </div>
 
-        <div class="loading" id="loading">
-            <div class="spinner"></div>
-            <p>Processing video... This may take a few moments.</p>
-        </div>
+        <!-- ==================== IMAGE TAB ==================== -->
+        <div class="tab-panel" id="imageTab">
+            <div class="upload-section" id="imgUploadSection">
+                <p style="font-size: 48px; margin-bottom: 10px;">🖼️</p>
+                <p style="margin-bottom: 15px; color: #666;">Drag & drop your image here or</p>
+                <button class="upload-btn" onclick="document.getElementById('imageInput').click()">Choose Image</button>
+                <input type="file" id="imageInput" accept="image/*">
+                <p id="imgFileName" style="margin-top: 15px; color: #667eea; font-weight: 600;"></p>
+            </div>
 
-        <div class="error" id="error"></div>
+            <div class="image-preview" id="imgPreview" style="display:none;">
+                <img id="imgPreviewEl" alt="Preview">
+            </div>
 
-        <div class="result" id="result">
-            <h3 style="margin-bottom: 10px;">✅ Video processed successfully!</h3>
-            <a id="downloadLink" download>Download Cropped Video</a>
-            <video id="resultVideo" controls></video>
+            <div class="crop-options" id="imgCropOptions">
+                <div class="mode-toggle" id="imgModeToggle">
+                    <button class="mode-btn active" onclick="switchMode('edge', 'image')">Edge Crop</button>
+                    <button class="mode-btn" onclick="switchMode('region', 'image')">Region Crop</button>
+                </div>
+
+                <div id="imgEdgeMode" class="crop-mode active">
+                    <p style="text-align: center; color: #666; margin-bottom: 15px;">Remove pixels from edges</p>
+                    <div class="input-group">
+                        <div class="input-wrapper">
+                            <label for="imgTop">Top (px)</label>
+                            <input type="number" id="imgTop" value="0" min="0">
+                        </div>
+                        <div class="input-wrapper">
+                            <label for="imgBottom">Bottom (px)</label>
+                            <input type="number" id="imgBottom" value="0" min="0">
+                        </div>
+                        <div class="input-wrapper">
+                            <label for="imgLeft">Left (px)</label>
+                            <input type="number" id="imgLeft" value="0" min="0">
+                        </div>
+                        <div class="input-wrapper">
+                            <label for="imgRight">Right (px)</label>
+                            <input type="number" id="imgRight" value="0" min="0">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="imgRegionMode" class="crop-mode">
+                    <p style="text-align: center; color: #666; margin-bottom: 15px;">Crop to specific rectangle</p>
+                    <div class="input-group">
+                        <div class="input-wrapper">
+                            <label for="imgCropX">Start X (px)</label>
+                            <input type="number" id="imgCropX" value="0" min="0">
+                        </div>
+                        <div class="input-wrapper">
+                            <label for="imgCropY">Start Y (px)</label>
+                            <input type="number" id="imgCropY" value="0" min="0">
+                        </div>
+                        <div class="input-wrapper">
+                            <label for="imgCropWidth">Width (px)</label>
+                            <input type="number" id="imgCropWidth" value="640" min="1">
+                        </div>
+                        <div class="input-wrapper">
+                            <label for="imgCropHeight">Height (px)</label>
+                            <input type="number" id="imgCropHeight" value="480" min="1">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resize (optional) -->
+                <div class="filters-section">
+                    <h4>Optional: Resize</h4>
+                    <div class="input-group" style="max-width:340px; margin:0 auto;">
+                        <div class="input-wrapper">
+                            <label for="imgResizeW">Width (px)</label>
+                            <input type="number" id="imgResizeW" placeholder="auto" min="1">
+                        </div>
+                        <div class="input-wrapper">
+                            <label for="imgResizeH">Height (px)</label>
+                            <input type="number" id="imgResizeH" placeholder="auto" min="1">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="filters-section" style="margin-top:10px;">
+                    <h4>Optional: Filters</h4>
+                    <div class="filter-row">
+                        <div class="filter-item">
+                            <input type="checkbox" id="imgGrayscale">
+                            <label for="imgGrayscale" style="margin:0">Grayscale</label>
+                        </div>
+                        <div class="filter-item">
+                            <label for="imgBlur" style="margin:0">Blur:</label>
+                            <input type="number" id="imgBlur" value="" placeholder="0" min="0" max="20">
+                        </div>
+                    </div>
+                </div>
+
+                <button class="process-btn" onclick="processImage()">🖼️ Process Image</button>
+            </div>
+
+            <div class="loading" id="imgLoading">
+                <div class="spinner"></div>
+                <p>Processing image...</p>
+            </div>
+
+            <div class="error" id="imgError"></div>
+
+            <div class="result" id="imgResult">
+                <h3 style="margin-bottom: 10px;">✅ Image processed successfully!</h3>
+                <a id="imgDownloadLink" download>Download Processed Image</a>
+                <br>
+                <img id="resultImage" class="result-img" alt="Processed image">
+            </div>
         </div>
     </div>
 
     <script>
+        /* ============ Tab switching ============ */
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            if (tab === 'video') {
+                document.querySelector('.tab-btn:first-child').classList.add('active');
+                document.getElementById('videoTab').classList.add('active');
+            } else {
+                document.querySelector('.tab-btn:last-child').classList.add('active');
+                document.getElementById('imageTab').classList.add('active');
+            }
+        }
+
+        /* ============ Shared: mode toggle ============ */
+        function switchMode(mode, context) {
+            if (context === 'video') {
+                videoMode = mode;
+                const toggle = document.getElementById('videoModeToggle');
+                toggle.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                document.getElementById('edgeMode').classList.remove('active');
+                document.getElementById('regionMode').classList.remove('active');
+                if (mode === 'edge') {
+                    toggle.children[0].classList.add('active');
+                    document.getElementById('edgeMode').classList.add('active');
+                } else {
+                    toggle.children[1].classList.add('active');
+                    document.getElementById('regionMode').classList.add('active');
+                }
+            } else {
+                imgMode = mode;
+                const toggle = document.getElementById('imgModeToggle');
+                toggle.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                document.getElementById('imgEdgeMode').classList.remove('active');
+                document.getElementById('imgRegionMode').classList.remove('active');
+                if (mode === 'edge') {
+                    toggle.children[0].classList.add('active');
+                    document.getElementById('imgEdgeMode').classList.add('active');
+                } else {
+                    toggle.children[1].classList.add('active');
+                    document.getElementById('imgRegionMode').classList.add('active');
+                }
+            }
+        }
+
+        /* ============ VIDEO SECTION ============ */
         let selectedFile = null;
-        let currentMode = 'edge';
+        let videoMode = 'edge';
 
         const uploadSection = document.getElementById('uploadSection');
         const videoInput = document.getElementById('videoInput');
@@ -305,7 +557,6 @@
         const error = document.getElementById('error');
         const result = document.getElementById('result');
 
-        // File selection
         videoInput.addEventListener('change', (e) => {
             selectedFile = e.target.files[0];
             if (selectedFile) {
@@ -314,16 +565,11 @@
             }
         });
 
-        // Drag and drop
         uploadSection.addEventListener('dragover', (e) => {
             e.preventDefault();
             uploadSection.classList.add('dragover');
         });
-
-        uploadSection.addEventListener('dragleave', () => {
-            uploadSection.classList.remove('dragover');
-        });
-
+        uploadSection.addEventListener('dragleave', () => uploadSection.classList.remove('dragover'));
         uploadSection.addEventListener('drop', (e) => {
             e.preventDefault();
             uploadSection.classList.remove('dragover');
@@ -335,30 +581,13 @@
             }
         });
 
-        function switchMode(mode) {
-            currentMode = mode;
-            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.crop-mode').forEach(m => m.classList.remove('active'));
-            
-            if (mode === 'edge') {
-                document.querySelector('.mode-btn:first-child').classList.add('active');
-                document.getElementById('edgeMode').classList.add('active');
-            } else {
-                document.querySelector('.mode-btn:last-child').classList.add('active');
-                document.getElementById('regionMode').classList.add('active');
-            }
-        }
-
         async function processVideo() {
-            if (!selectedFile) {
-                showError('Please select a video file first');
-                return;
-            }
+            if (!selectedFile) return showVideoError('Please select a video file first');
 
             const formData = new FormData();
             formData.append('video', selectedFile);
 
-            if (currentMode === 'edge') {
+            if (videoMode === 'edge') {
                 formData.append('top', document.getElementById('top').value);
                 formData.append('bottom', document.getElementById('bottom').value);
                 formData.append('left', document.getElementById('left').value);
@@ -375,38 +604,143 @@
             result.classList.remove('active');
 
             try {
-                const response = await fetch('/api/crop-video', {
-                    method: 'POST',
-                    body: formData
-                });
-
+                const response = await fetch('/api/crop-video', { method: 'POST', body: formData });
                 const data = await response.json();
-
                 if (response.ok) {
-                    showResult(data.downloadUrl);
+                    showVideoResult(data.downloadUrl);
                 } else {
-                    showError(data.error || 'Failed to process video');
+                    showVideoError(data.error || 'Failed to process video');
                 }
             } catch (err) {
-                showError('Network error: ' + err.message);
+                showVideoError('Network error: ' + err.message);
             } finally {
                 loading.classList.remove('active');
             }
         }
 
-        function showError(message) {
+        function showVideoError(message) {
             error.textContent = '❌ ' + message;
             error.classList.add('active');
             result.classList.remove('active');
         }
 
-        function showResult(downloadUrl) {
-            const downloadLink = document.getElementById('downloadLink');
-            const resultVideo = document.getElementById('resultVideo');
-            
-            downloadLink.href = downloadUrl;
-            resultVideo.src = downloadUrl;
+        function showVideoResult(downloadUrl) {
+            document.getElementById('downloadLink').href = downloadUrl;
+            document.getElementById('resultVideo').src = downloadUrl;
             result.classList.add('active');
+        }
+
+        /* ============ IMAGE SECTION ============ */
+        let selectedImage = null;
+        let imgMode = 'edge';
+
+        const imgUploadSection = document.getElementById('imgUploadSection');
+        const imageInput = document.getElementById('imageInput');
+        const imgFileName = document.getElementById('imgFileName');
+        const imgCropOptions = document.getElementById('imgCropOptions');
+        const imgLoading = document.getElementById('imgLoading');
+        const imgError = document.getElementById('imgError');
+        const imgResult = document.getElementById('imgResult');
+
+        imageInput.addEventListener('change', (e) => {
+            selectedImage = e.target.files[0];
+            if (selectedImage) {
+                imgFileName.textContent = `Selected: ${selectedImage.name}`;
+                imgCropOptions.classList.add('active');
+                previewImage(selectedImage);
+            }
+        });
+
+        imgUploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            imgUploadSection.classList.add('dragover');
+        });
+        imgUploadSection.addEventListener('dragleave', () => imgUploadSection.classList.remove('dragover'));
+        imgUploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            imgUploadSection.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type.startsWith('image/')) {
+                selectedImage = files[0];
+                imgFileName.textContent = `Selected: ${selectedImage.name}`;
+                imgCropOptions.classList.add('active');
+                previewImage(selectedImage);
+            }
+        });
+
+        function previewImage(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('imgPreviewEl').src = e.target.result;
+                document.getElementById('imgPreview').style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function processImage() {
+            if (!selectedImage) return showImageError('Please select an image file first');
+
+            const formData = new FormData();
+            formData.append('image', selectedImage);
+
+            if (imgMode === 'edge') {
+                formData.append('top', document.getElementById('imgTop').value);
+                formData.append('bottom', document.getElementById('imgBottom').value);
+                formData.append('left', document.getElementById('imgLeft').value);
+                formData.append('right', document.getElementById('imgRight').value);
+            } else {
+                formData.append('cropX', document.getElementById('imgCropX').value);
+                formData.append('cropY', document.getElementById('imgCropY').value);
+                formData.append('cropWidth', document.getElementById('imgCropWidth').value);
+                formData.append('cropHeight', document.getElementById('imgCropHeight').value);
+            }
+
+            // Optional resize
+            const rw = document.getElementById('imgResizeW').value;
+            const rh = document.getElementById('imgResizeH').value;
+            if (rw && rh) {
+                formData.append('resizeWidth', rw);
+                formData.append('resizeHeight', rh);
+            }
+
+            // Optional filters
+            if (document.getElementById('imgGrayscale').checked) {
+                formData.append('grayscale', 'true');
+            }
+            const blurVal = document.getElementById('imgBlur').value;
+            if (blurVal && Number(blurVal) > 0) {
+                formData.append('blur', blurVal);
+            }
+
+            imgLoading.classList.add('active');
+            imgError.classList.remove('active');
+            imgResult.classList.remove('active');
+
+            try {
+                const response = await fetch('/api/crop-image', { method: 'POST', body: formData });
+                const data = await response.json();
+                if (response.ok) {
+                    showImageResult(data.downloadUrl);
+                } else {
+                    showImageError(data.error || 'Failed to process image');
+                }
+            } catch (err) {
+                showImageError('Network error: ' + err.message);
+            } finally {
+                imgLoading.classList.remove('active');
+            }
+        }
+
+        function showImageError(message) {
+            imgError.textContent = '❌ ' + message;
+            imgError.classList.add('active');
+            imgResult.classList.remove('active');
+        }
+
+        function showImageResult(downloadUrl) {
+            document.getElementById('imgDownloadLink').href = downloadUrl;
+            document.getElementById('resultImage').src = downloadUrl;
+            imgResult.classList.add('active');
         }
     </script>
 </body>
